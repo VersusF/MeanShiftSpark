@@ -26,19 +26,23 @@ def mapper(x):
     new_x = 0
     new_y = 0
     total_weight = 0
+    # Iterates on neighbours
     for candidate in points.values():
         d = distance(x, candidate)
         if d <= distance_limit:
+            # calculate mean
             weight = gaussian_kernel(d, distance_limit)
             new_x += candidate[0]*weight
             new_y += candidate[1]*weight
             total_weight += weight
+    # do the shift
     new_x /= total_weight
     new_y /= total_weight
     return new_x, new_y
 
 
 def reducer(coords, x):
+    # TODO merge near points
     coords.add((int(x[0]), int(x[1])))
     return coords
 
@@ -58,6 +62,7 @@ def main():
     for i in range(iteration_number):
         coords = set(map(mapper, coords))
         coords = reduce(reducer, coords, set())
+    # generate clusters
     clusters = {}
     for i, x in enumerate(coords):
         clusters[i] = x
