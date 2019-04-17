@@ -1,18 +1,26 @@
 import math
 from numpy import exp
 from pyspark import SparkContext
+from decimal import Decimal
 
 sc = SparkContext("local", "first app")
 sc.setLogLevel("ERROR")
-input_file = "dataset.csv"
-MAX_X = 100
-MAX_Y = 100
-DISTANCE_LIMIT = 3
-EPSILON = 0.5
-CHUNK_SIZE = 10
+input_file = "open_pubs_small.csv"
+MULTIPLIER = 100
+# TODO set them
+MAX_X = None
+MIN_X = None
+MAX_Y = None
+MIN_Y = None
+DISTANCE_LIMIT = 0.005
+EPSILON = 0.001
+CHUNK_SIZE = 0.5
+
 ITERATION_NUMBER = 1
 MAX_CHUNK_X = math.floor(MAX_X / CHUNK_SIZE) - 1
 MAX_CHUNK_Y = math.floor(MAX_Y / CHUNK_SIZE) - 1
+MIN_CHUNK_X = math.floor(MIN_X / CHUNK_SIZE) + 1
+MIN_CHUNK_Y = math.floor(MIN_Y / CHUNK_SIZE) + 1
 
 
 def distance(x, y):
@@ -23,6 +31,17 @@ def gaussian_kernel(distance, bandwidth):
     val = (1/(bandwidth*math.sqrt(2*math.pi))) * \
           exp(-0.5*((distance / bandwidth))**2)
     return val
+
+
+def parse_line(line):
+    """
+    Parse a line returning a tuple with: name, x, y
+    """
+    fields = line[1:-1].split('","')  # Get the name, x, y
+    # Filter and convert
+    if fields[6] != '\\N' and fields[6] != '\\N':
+        return fields[0], Decimal(fields[6]) * MULTIPLIER, \
+               Decimal(fields[7]) * MULTIPLIER
 
 
 def getChunk(point, y=None):
@@ -41,17 +60,17 @@ def generate_chunks(point):
         result.append((chunk_x + 1, chunk_y))
         if chunk_y < MAX_CHUNK_Y:
             result.append((chunk_x + 1, chunk_y + 1))
-        if chunk_y > 0:
+        if chunk_y > MIN_CHUNK_Y:
             result.append((chunk_x + 1, chunk_y - 1))
-    if chunk_x > 0:
+    if chunk_x > MIN_CHUNK_X:
         result.append((chunk_x - 1, chunk_y))
         if chunk_y < MAX_CHUNK_Y:
             result.append((chunk_x - 1, chunk_y + 1))
-        if chunk_y > 0:
+        if chunk_y > MIN_CHUNK_Y:
             result.append((chunk_x - 1, chunk_y - 1))
     if chunk_y < MAX_CHUNK_Y:
         result.append((chunk_x, chunk_y + 1))
-    if chunk_y > 0:
+    if chunk_y > MIN_CHUNK_Y:
         result.append((chunk_x, chunk_y - 1))
     result = map(lambda x: (x,) + (point,), result)
     return result
@@ -127,15 +146,13 @@ def grouper(points, new_point):
 
 
 def toString(point):
-    return str(point[0]) + ',' + str(point[1])
+    return str(point[0] / MULTIPLIER) + ',' + str(point[1] / MULTIPLIER)
 
 
 def main():
     # Input file
     my_file = sc.textFile(input_file).cache()
-    points = my_file.map(lambda line: line.split(','))
-    points = points.map(lambda my_line: (my_line[0], float(my_line[1]),
-                                         float(my_line[2])))
+    points = my_file.map(parse_line)
     coords = points.map(lambda x: (x[1], x[2]))
 
     # Generate chunks where every points is associated to at most 9 chunks

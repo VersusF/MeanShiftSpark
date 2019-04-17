@@ -3,3 +3,5 @@
 .vscode/
 output/
 points_after_map.txt
+open_pubs_small.csv
+open_pubs.csv
