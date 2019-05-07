@@ -1,17 +1,17 @@
 import math
 from numpy import exp
-from pyspark import SparkContext
 from decimal import Decimal
+from pyspark import SparkContext
 
 sc = SparkContext("local", "first app")
 sc.setLogLevel("ERROR")
 input_file = "open_pubs.csv"
 MULTIPLIER = 100
 # TODO set them
-MAX_X = Decimal(59.48)
-MIN_X = Decimal(49.82)
-MAX_Y = Decimal(2.03)
-MIN_Y = Decimal(-10.86)
+MAX_X = Decimal(59.17)
+MIN_X = Decimal(49.89)
+MAX_Y = Decimal(1.76)
+MIN_Y = Decimal(-8.5)
 WIDTH_X = MAX_X - MIN_X
 WIDTH_Y = MAX_Y - MIN_Y
 
@@ -23,19 +23,19 @@ MAX_CHUNK_X = 100
 MIN_CHUNK_X = 0
 MAX_CHUNK_Y = 100
 MIN_CHUNK_Y = 0
-CHUNK_SIZE = 5
+CHUNK_SIZE = 2
 
 
 def distance(x, y):
     """
     Eucledian distance
     """
-    return math.sqrt((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2)
+    return ((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2).sqrt()
 
 
 def gaussian_kernel(distance, bandwidth):
-    val = (1/(bandwidth*math.sqrt(2*math.pi))) * \
-          exp(-0.5*((distance / bandwidth))**2)
+    val = (1 / (bandwidth * (2 * Decimal(math.pi)).sqrt())) * \
+          ((distance / bandwidth) ** 2 / -2).exp()
     return val
 
 
@@ -65,24 +65,35 @@ def generate_chunks(point):
     returns a list containing every chunk that can see the point
     """
     result = []
+    x, y = point
     chunk_x, chunk_y = getChunk(point)
+    # ottengo dimensioni del quadrato interno oltre la distance limit
+    lower_x = chunk_x * CHUNK_SIZE + DISTANCE_LIMIT
+    upper_x = (chunk_x + 1) * CHUNK_SIZE - DISTANCE_LIMIT
+    lower_y = chunk_y * CHUNK_SIZE + DISTANCE_LIMIT
+    upper_y = (chunk_y + 1) * CHUNK_SIZE - DISTANCE_LIMIT
+    # aggiungo il suo chunk
     result.append((chunk_x, chunk_y))
-    if chunk_x < MAX_CHUNK_X:
+    # guardo i 3 a destra
+    if chunk_x < MAX_CHUNK_X and x >= upper_x:
         result.append((chunk_x + 1, chunk_y))
-        if chunk_y < MAX_CHUNK_Y:
+        if chunk_y < MAX_CHUNK_Y and y >= upper_y:
             result.append((chunk_x + 1, chunk_y + 1))
-        if chunk_y > MIN_CHUNK_Y:
+        if chunk_y > MIN_CHUNK_Y and y <= lower_y:
             result.append((chunk_x + 1, chunk_y - 1))
-    if chunk_x > MIN_CHUNK_X:
+    # guardo i 3 a sinistra
+    if chunk_x > MIN_CHUNK_X and x <= lower_x:
         result.append((chunk_x - 1, chunk_y))
-        if chunk_y < MAX_CHUNK_Y:
+        if chunk_y < MAX_CHUNK_Y and y >= upper_y:
             result.append((chunk_x - 1, chunk_y + 1))
-        if chunk_y > MIN_CHUNK_Y:
+        if chunk_y > MIN_CHUNK_Y and y <= lower_y:
             result.append((chunk_x - 1, chunk_y - 1))
-    if chunk_y < MAX_CHUNK_Y:
+    # guardo sopra e sotto
+    if chunk_y < MAX_CHUNK_Y and y >= upper_y:
         result.append((chunk_x, chunk_y + 1))
-    if chunk_y > MIN_CHUNK_Y:
+    if chunk_y > MIN_CHUNK_Y and y <= lower_y:
         result.append((chunk_x, chunk_y - 1))
+    # for every chunk generate the tuple chunk, point
     result = map(lambda x: (x,) + (point,), result)
     return result
 
@@ -155,6 +166,10 @@ def grouper(points, new_point):
     points.add(new_point)
     return points
 
+######################################
+#          PRINT FUNCTIONS           #
+######################################
+
 
 def toString(point):
     """
@@ -170,7 +185,6 @@ def main():
     points = my_file.map(parse_line)
     coords = points.filter(lambda x: x is not None).map(lambda x: (x[1], x[2]))
     coords.map(toString).saveAsTextFile('tmp')
-    return
 
     # Generate chunks where every points is associated to at most 9 chunks
     chunks = coords.flatMap(generate_chunks).foldByKey(set(), grouper)
@@ -178,6 +192,7 @@ def main():
     # MAP
     new_points = chunks
     for i in range(ITERATION_NUMBER):
+        # map and reduce
         new_points = new_points.flatMap(mapper).foldByKey(set(), grouper)
 
     # REDUCE
