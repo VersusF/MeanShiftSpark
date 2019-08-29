@@ -1,9 +1,4 @@
 *.class
 *.log
 .vscode/
-points/
-clusters/
-tmp/
-points_after_map.txt
-*.csv
-execution_time
+output/

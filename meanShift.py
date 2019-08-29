@@ -3,9 +3,10 @@ from numpy import exp
 from decimal import Decimal
 from pyspark import SparkContext
 
-sc = SparkContext("local", "first app")
-sc.setLogLevel("ERROR")
-input_file = "open_pubs_1000.csv"
+sc = SparkContext('local', 'first app')
+sc.setLogLevel('ERROR')
+hadoop_path = 'hdfs://hadoopmaster/user/st-contro/meanShift/'
+input_file = 'input/open_pubs_1000.csv'
 MULTIPLIER = 100
 # TODO set them
 MAX_X = Decimal(59.17)
@@ -177,11 +178,11 @@ def toString(point):
 
 def main():
     # Input file
-    my_file = sc.textFile(input_file).cache()
+    my_file = sc.textFile(hadoop_path + input_file).cache()
     points = my_file.map(parse_line)
     coords = points.filter(lambda x: x is not None).map(lambda x: (x[1], x[2]))
     # print the points for visualization scope
-    coords.map(toString).saveAsTextFile('points')
+    coords.map(toString).saveAsTextFile(hadoop_path + 'output/points')
 
     # Generate chunks where every points is associated to at most 9 chunks
     chunks = coords.flatMap(generate_chunks).groupByKey()
@@ -197,7 +198,7 @@ def main():
     centroids = new_points.foldByKey(set(), combiner)
     # save output
     centroids = centroids.flatMap(unwrap)
-    centroids.map(toString).saveAsTextFile('clusters')
+    centroids.map(toString).saveAsTextFile(hadoop_path + 'output/clusters')
     input()
 
 if __name__ == "__main__":
