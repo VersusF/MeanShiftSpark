@@ -199,7 +199,6 @@ def main():
     # save output
     centroids = centroids.flatMap(unwrap)
     centroids.map(toString).saveAsTextFile(hadoop_path + 'output/clusters')
-    input()
 
 if __name__ == "__main__":
     main()
