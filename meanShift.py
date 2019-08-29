@@ -5,7 +5,7 @@ from pyspark import SparkContext
 
 sc = SparkContext("local", "first app")
 sc.setLogLevel("ERROR")
-input_file = "open_pubs.csv"
+input_file = "open_pubs_1000.csv"
 MULTIPLIER = 100
 # TODO set them
 MAX_X = Decimal(59.17)
@@ -162,10 +162,6 @@ def unwrap(chunked_centroids):
     return result
 
 
-def grouper(points, new_point):
-    points.add(new_point)
-    return points
-
 ######################################
 #          PRINT FUNCTIONS           #
 ######################################
@@ -184,25 +180,25 @@ def main():
     my_file = sc.textFile(input_file).cache()
     points = my_file.map(parse_line)
     coords = points.filter(lambda x: x is not None).map(lambda x: (x[1], x[2]))
-    coords.map(toString).saveAsTextFile('tmp')
+    # print the points for visualization scope
+    coords.map(toString).saveAsTextFile('points')
 
     # Generate chunks where every points is associated to at most 9 chunks
-    chunks = coords.flatMap(generate_chunks).foldByKey(set(), grouper)
+    chunks = coords.flatMap(generate_chunks).groupByKey()
 
     # MAP
     new_points = chunks
     for i in range(ITERATION_NUMBER):
         # map and reduce
-        new_points = new_points.flatMap(mapper).foldByKey(set(), grouper)
+        new_points = new_points.flatMap(mapper).groupByKey()
 
     # REDUCE
     # centroids = new_points.aggregateByKey(set(), merger, combiner)
-    print '\n\n\n\t\t\tREDUCING\n\n\n'
     centroids = new_points.foldByKey(set(), combiner)
+    # save output
     centroids = centroids.flatMap(unwrap)
-
-    centroids.map(toString).saveAsTextFile('output')
-
+    centroids.map(toString).saveAsTextFile('clusters')
+    input()
 
 if __name__ == "__main__":
     main()
