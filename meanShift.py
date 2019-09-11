@@ -8,7 +8,7 @@ sc.setLogLevel('ERROR')
 
 # SETTABLE VALUES
 hadoop_path = 'hdfs://hadoopmaster/user/st-contro/meanShift/'
-input_file = 'input/open_pubs_1000.csv'
+input_file = 'input/artificial_clusters.csv'
 MAX_X = Decimal(59.17)
 MIN_X = Decimal(49.89)
 MAX_Y = Decimal(1.76)
