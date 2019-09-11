@@ -5,4 +5,4 @@ X, _ = make_blobs(n_samples=20000, centers=centers, cluster_std=0.6,
 
 with open('artificial_clusters.csv', 'w') as fout:
     for p in X:
-        fout.write('"p","","","","","","","{}","{}",""\n'.format(p[0], p[1]))
+        fout.write('"p","","","","","","{}","{}",""\n'.format(p[0], p[1]))
