@@ -5,21 +5,20 @@ from pyspark import SparkContext
 
 sc = SparkContext('local', 'first app')
 sc.setLogLevel('ERROR')
+
+# SETTABLE VALUES
 hadoop_path = 'hdfs://hadoopmaster/user/st-contro/meanShift/'
 input_file = 'input/open_pubs_1000.csv'
-MULTIPLIER = 100
-# TODO set them
 MAX_X = Decimal(59.17)
 MIN_X = Decimal(49.89)
 MAX_Y = Decimal(1.76)
 MIN_Y = Decimal(-8.5)
-WIDTH_X = MAX_X - MIN_X
-WIDTH_Y = MAX_Y - MIN_Y
-
-
 DISTANCE_LIMIT = Decimal(0.5)
 EPSILON = Decimal(0.1)
-ITERATION_NUMBER = 1
+ITERATION_NUMBER = 10
+
+WIDTH_X = MAX_X - MIN_X
+WIDTH_Y = MAX_Y - MIN_Y
 MAX_CHUNK_X = 100
 MIN_CHUNK_X = 0
 MAX_CHUNK_Y = 100
