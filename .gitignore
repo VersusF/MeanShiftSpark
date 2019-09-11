@@ -1,4 +1,4 @@
 *.class
 *.log
 .vscode/
-output/
+output/time-measurements/
